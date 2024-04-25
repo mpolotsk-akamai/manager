@@ -22,6 +22,9 @@ export const StyledSummaryTextTypography = styled(Typography, {
   '& strong': {
     paddingRight: theme.spacing(1),
   },
+  alignItems: 'center',
+  columnGap: 5,
+  display: 'flex',
   paddingBottom: theme.spacing(2),
   whiteSpace: 'nowrap',
 }));

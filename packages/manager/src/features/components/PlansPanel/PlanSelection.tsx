@@ -143,7 +143,11 @@ export const PlanSelection = (props: PlanSelectionProps) => {
   )}/mo ($${price?.hourly ?? UNKNOWN_PRICE}/hr)`;
 
   const rowAriaDisabled =
-    isSamePlan || planTooSmall || isDisabledClass || planIsDisabled;
+    isSamePlan ||
+    planTooSmall ||
+    isDisabledClass ||
+    planIsDisabled ||
+    disabled512GbPlan;
 
   return (
     <React.Fragment key={`tabbed-panel-${idx}`}>
@@ -193,8 +197,9 @@ export const PlanSelection = (props: PlanSelectionProps) => {
                 <IconButton disableRipple size="small">
                   <HelpOutline
                     sx={{
-                      height: 16,
-                      width: 16,
+                      color: '#888f91',
+                      height: 20,
+                      width: 20,
                     }}
                   />
                 </IconButton>
