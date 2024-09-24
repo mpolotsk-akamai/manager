@@ -1,7 +1,6 @@
 import { getSSLFields } from '@linode/api-v4/lib/databases/databases';
-import { Database, SSLFields } from '@linode/api-v4/lib/databases/types';
 import { useTheme } from '@mui/material';
-import { Theme } from '@mui/material/styles';
+import Grid from '@mui/material/Unstable_Grid2/Grid2';
 import { useSnackbar } from 'notistack';
 import * as React from 'react';
 import { makeStyles } from 'tss-react/mui';
@@ -14,14 +13,25 @@ import { CopyTooltip } from 'src/components/CopyTooltip/CopyTooltip';
 import { TooltipIcon } from 'src/components/TooltipIcon';
 import { Typography } from 'src/components/Typography';
 import { DB_ROOT_USERNAME } from 'src/constants';
+import { useIsDatabasesEnabled } from 'src/features/Databases/utilities';
 import { useDatabaseCredentialsQuery } from 'src/queries/databases/databases';
 import { downloadFile } from 'src/utilities/downloadFile';
 import { getErrorStringOrDefault } from 'src/utilities/errorUtils';
+
+import {
+  StyledGridContainer,
+  StyledLabelTypography,
+  StyledValueBox,
+} from './DatabaseSummaryClusterConfiguration.style';
+
+import type { Database, SSLFields } from '@linode/api-v4/lib/databases/types';
+import type { Theme } from '@mui/material/styles';
 
 const useStyles = makeStyles()((theme: Theme) => ({
   actionBtnsCtn: {
     display: 'flex',
     justifyContent: 'flex-end',
+    marginTop: '10px',
     padding: `${theme.spacing(1)} 0`,
   },
   caCertBtn: {
@@ -132,6 +142,7 @@ export const DatabaseSummaryConnectionDetails = (props: Props) => {
   const { database } = props;
   const { classes } = useStyles();
   const theme = useTheme();
+  const { isV2GAUser } = useIsDatabasesEnabled();
   const { enqueueSnackbar } = useSnackbar();
 
   const [showCredentials, setShowPassword] = React.useState<boolean>(false);
@@ -240,179 +251,304 @@ export const DatabaseSummaryConnectionDetails = (props: Props) => {
       <Typography className={classes.header} variant="h3">
         Connection Details
       </Typography>
-      <Box className={classes.connectionDetailsCtn} data-qa-connection-details>
-        <Typography>
-          <span>username</span> = {username}
-        </Typography>
-        <Box display="flex">
-          <Typography>
-            <span>password</span> = {password}
-          </Typography>
-          {showCredentials && credentialsLoading ? (
-            <div className={classes.progressCtn}>
-              <CircleProgress noPadding size="xs" />
-            </div>
-          ) : credentialsError ? (
-            <>
-              <span className={classes.error}>
-                Error retrieving credentials.
-              </span>
-              {credentialsBtn(() => getDatabaseCredentials(), 'Retry')}
-            </>
-          ) : (
-            credentialsBtn(
-              handleShowPasswordClick,
-              showCredentials && credentials ? 'Hide' : 'Show'
-            )
-          )}
-          {disableShowBtn ? (
-            <TooltipIcon
-              text={
-                database.status === 'provisioning'
-                  ? 'Your Database Cluster is currently provisioning.'
-                  : 'Your root password is unavailable when your Database Cluster has failed.'
-              }
-              status="help"
-              sxTooltipIcon={sxTooltipIcon}
-            />
-          ) : null}
-          {showCredentials && credentials ? (
-            <CopyTooltip
-              className={classes.inlineCopyToolTip}
-              text={password}
-            />
-          ) : null}
-        </Box>
-        <Box>
-          {!isMongoReplicaSet ? (
-            <Box alignItems="center" display="flex" flexDirection="row">
-              {database.hosts?.primary ? (
+      {isV2GAUser ? (
+        <StyledGridContainer container lg={7} md={10} spacing={0}>
+          <Grid md={4} xs={3}>
+            <StyledLabelTypography>Username</StyledLabelTypography>
+          </Grid>
+          <Grid md={8} xs={9}>
+            <StyledValueBox>{username}</StyledValueBox>
+          </Grid>
+          <Grid md={4} xs={3}>
+            <StyledLabelTypography>Password</StyledLabelTypography>
+          </Grid>
+          <Grid md={8} xs={9}>
+            <StyledValueBox>
+              {password}
+              {showCredentials && credentialsLoading ? (
+                <div className={classes.progressCtn}>
+                  <CircleProgress noPadding size="xs" />
+                </div>
+              ) : credentialsError ? (
                 <>
-                  <Typography>
-                    <span>host</span> ={' '}
-                    <span style={{ fontFamily: theme.font.normal }}>
-                      {database.hosts?.primary}
-                    </span>{' '}
-                  </Typography>
-                  <CopyTooltip
-                    className={classes.inlineCopyToolTip}
-                    text={database.hosts?.primary}
-                  />
-                  {database.engine === 'mongodb' ? (
-                    <TooltipIcon
-                      status="help"
-                      sxTooltipIcon={sxTooltipIcon}
-                      text={mongoHostHelperCopy}
-                    />
-                  ) : null}
+                  <span className={classes.error}>
+                    Error retrieving credentials.
+                  </span>
+                  {credentialsBtn(() => getDatabaseCredentials(), 'Retry')}
                 </>
               ) : (
-                <Typography>
-                  <span>host</span> ={' '}
-                  <span className={classes.provisioningText}>
-                    Your hostname will appear here once it is available.
-                  </span>
-                </Typography>
+                credentialsBtn(
+                  handleShowPasswordClick,
+                  showCredentials && credentials ? 'Hide' : 'Show'
+                )
               )}
-            </Box>
-          ) : (
-            <>
-              <Typography>
-                <span>hosts</span> ={' '}
-                {!database.peers || database.peers.length === 0 ? (
-                  <span className={classes.provisioningText}>
-                    Your hostnames will appear here once they are available.
-                  </span>
-                ) : null}
-              </Typography>
-              {database.peers && database.peers.length > 0
-                ? database.peers.map((hostname, i) => (
-                    <Box
-                      alignItems="center"
-                      display="flex"
-                      flexDirection="row"
-                      key={hostname}
-                    >
-                      <Typography
-                        style={{
-                          marginBottom: 0,
-                          marginLeft: 16,
-                          marginTop: 0,
-                        }}
-                      >
-                        <span style={{ fontFamily: theme.font.normal }}>
-                          {hostname}
-                        </span>
-                      </Typography>
-                      <CopyTooltip
-                        className={classes.inlineCopyToolTip}
-                        text={hostname}
+              {disableShowBtn ? (
+                <TooltipIcon
+                  text={
+                    database.status === 'provisioning'
+                      ? 'Your Database Cluster is currently provisioning.'
+                      : 'Your root password is unavailable when your Database Cluster has failed.'
+                  }
+                  status="help"
+                  sxTooltipIcon={sxTooltipIcon}
+                />
+              ) : null}
+              {showCredentials && credentials ? (
+                <CopyTooltip
+                  className={classes.inlineCopyToolTip}
+                  text={password}
+                />
+              ) : null}
+            </StyledValueBox>
+          </Grid>
+          <Grid md={4} xs={3}>
+            <StyledLabelTypography>Host</StyledLabelTypography>
+          </Grid>
+          <Grid md={8} xs={9}>
+            <StyledValueBox>
+              {!isMongoReplicaSet &&
+                (database.hosts?.primary ? (
+                  <>
+                    {database.hosts?.primary}
+                    <CopyTooltip
+                      className={classes.inlineCopyToolTip}
+                      text={database.hosts?.primary}
+                    />
+                    {database.engine === 'mongodb' ? (
+                      <TooltipIcon
+                        status="help"
+                        sxTooltipIcon={sxTooltipIcon}
+                        text={mongoHostHelperCopy}
                       />
-                      {/*  Display the helper text on the first hostname */}
-                      {i === 0 ? (
-                        <TooltipIcon
-                          status="help"
-                          sxTooltipIcon={sxTooltipIcon}
-                          text={mongoHostHelperCopy}
-                        />
-                      ) : null}
-                    </Box>
-                  ))
-                : null}
-            </>
-          )}
-        </Box>
-        {readOnlyHost ? (
-          <Box alignItems="center" display="flex" flexDirection="row">
-            <Typography>
-              {database.platform === 'rdbms-default' ? (
-                <span>read-only host</span>
+                    ) : null}
+                  </>
+                ) : (
+                  <Typography>
+                    <span className={classes.provisioningText}>
+                      Your hostname will appear here once it is available.
+                    </span>
+                  </Typography>
+                ))}
+            </StyledValueBox>
+          </Grid>
+          <Grid md={4} xs={3}>
+            <StyledLabelTypography>Private Network Host</StyledLabelTypography>
+          </Grid>
+          <Grid md={8} xs={9}>
+            <StyledValueBox>-</StyledValueBox>
+          </Grid>
+          <Grid md={4} xs={3}>
+            <StyledLabelTypography>Read-only Host</StyledLabelTypography>
+          </Grid>
+          <Grid md={8} xs={9}>
+            <StyledValueBox>
+              {readOnlyHost ? (
+                <>
+                  {readOnlyHost}
+                  <CopyTooltip
+                    className={classes.inlineCopyToolTip}
+                    text={readOnlyHost}
+                  />
+                </>
               ) : (
-                <span>private network host</span>
+                'not available'
               )}
-              = {readOnlyHost}
+            </StyledValueBox>
+          </Grid>
+          <Grid md={4} xs={3}>
+            <StyledLabelTypography>Port</StyledLabelTypography>
+          </Grid>
+          <Grid md={8} xs={9}>
+            <StyledValueBox>{database.port}</StyledValueBox>
+          </Grid>
+          <Grid md={4} xs={3}>
+            <StyledLabelTypography>SSL</StyledLabelTypography>
+          </Grid>
+          <Grid md={8} xs={9}>
+            <StyledValueBox>
+              {database.ssl_connection ? 'ENABLED' : 'DISABLED'}
+            </StyledValueBox>
+          </Grid>
+        </StyledGridContainer>
+      ) : (
+        <Box
+          className={classes.connectionDetailsCtn}
+          data-qa-connection-details
+        >
+          <Typography>
+            <span>username</span> = {username}
+          </Typography>
+          <Box display="flex">
+            <Typography>
+              <span>password</span> = {password}
             </Typography>
-            <CopyTooltip
-              className={classes.inlineCopyToolTip}
-              text={readOnlyHost}
-            />
-            <TooltipIcon
-              status="help"
-              sxTooltipIcon={sxTooltipIcon}
-              text={privateHostCopy}
-            />
+            {showCredentials && credentialsLoading ? (
+              <div className={classes.progressCtn}>
+                <CircleProgress noPadding size="xs" />
+              </div>
+            ) : credentialsError ? (
+              <>
+                <span className={classes.error}>
+                  Error retrieving credentials.
+                </span>
+                {credentialsBtn(() => getDatabaseCredentials(), 'Retry')}
+              </>
+            ) : (
+              credentialsBtn(
+                handleShowPasswordClick,
+                showCredentials && credentials ? 'Hide' : 'Show'
+              )
+            )}
+            {disableShowBtn ? (
+              <TooltipIcon
+                text={
+                  database.status === 'provisioning'
+                    ? 'Your Database Cluster is currently provisioning.'
+                    : 'Your root password is unavailable when your Database Cluster has failed.'
+                }
+                status="help"
+                sxTooltipIcon={sxTooltipIcon}
+              />
+            ) : null}
+            {showCredentials && credentials ? (
+              <CopyTooltip
+                className={classes.inlineCopyToolTip}
+                text={password}
+              />
+            ) : null}
           </Box>
-        ) : null}
-        <Typography>
-          <span>port</span> = {database.port}
-        </Typography>
-        {isMongoReplicaSet ? (
-          database.replica_set ? (
+          <Box>
+            {!isMongoReplicaSet ? (
+              <Box alignItems="center" display="flex" flexDirection="row">
+                {database.hosts?.primary ? (
+                  <>
+                    <Typography>
+                      <span>host</span> ={' '}
+                      <span style={{ fontFamily: theme.font.normal }}>
+                        {database.hosts?.primary}
+                      </span>{' '}
+                    </Typography>
+                    <CopyTooltip
+                      className={classes.inlineCopyToolTip}
+                      text={database.hosts?.primary}
+                    />
+                    {database.engine === 'mongodb' ? (
+                      <TooltipIcon
+                        status="help"
+                        sxTooltipIcon={sxTooltipIcon}
+                        text={mongoHostHelperCopy}
+                      />
+                    ) : null}
+                  </>
+                ) : (
+                  <Typography>
+                    <span>host</span> ={' '}
+                    <span className={classes.provisioningText}>
+                      Your hostname will appear here once it is available.
+                    </span>
+                  </Typography>
+                )}
+              </Box>
+            ) : (
+              <>
+                <Typography>
+                  <span>hosts</span> ={' '}
+                  {!database.peers || database.peers.length === 0 ? (
+                    <span className={classes.provisioningText}>
+                      Your hostnames will appear here once they are available.
+                    </span>
+                  ) : null}
+                </Typography>
+                {database.peers && database.peers.length > 0
+                  ? database.peers.map((hostname, i) => (
+                      <Box
+                        alignItems="center"
+                        display="flex"
+                        flexDirection="row"
+                        key={hostname}
+                      >
+                        <Typography
+                          style={{
+                            marginBottom: 0,
+                            marginLeft: 16,
+                            marginTop: 0,
+                          }}
+                        >
+                          <span style={{ fontFamily: theme.font.normal }}>
+                            {hostname}
+                          </span>
+                        </Typography>
+                        <CopyTooltip
+                          className={classes.inlineCopyToolTip}
+                          text={hostname}
+                        />
+                        {/*  Display the helper text on the first hostname */}
+                        {i === 0 ? (
+                          <TooltipIcon
+                            status="help"
+                            sxTooltipIcon={sxTooltipIcon}
+                            text={mongoHostHelperCopy}
+                          />
+                        ) : null}
+                      </Box>
+                    ))
+                  : null}
+              </>
+            )}
+          </Box>
+          {readOnlyHost ? (
             <Box alignItems="center" display="flex" flexDirection="row">
               <Typography>
-                <span>replica set</span> ={' '}
-                <span style={{ fontFamily: theme.font.normal }}>
-                  {database.replica_set}
-                </span>
+                {database.platform === 'rdbms-default' ? (
+                  <span>read-only host</span>
+                ) : (
+                  <span>private network host</span>
+                )}
+                = {readOnlyHost}
               </Typography>
               <CopyTooltip
                 className={classes.inlineCopyToolTip}
-                text={database.replica_set}
+                text={readOnlyHost}
+              />
+              <TooltipIcon
+                status="help"
+                sxTooltipIcon={sxTooltipIcon}
+                text={privateHostCopy}
               />
             </Box>
-          ) : (
-            <Typography>
-              <span>replica set</span> ={' '}
-              <span className={classes.provisioningText}>
-                Your replica set will appear here once it is available.
-              </span>
-            </Typography>
-          )
-        ) : null}
-        <Typography>
-          <span>ssl</span> = {database.ssl_connection ? 'ENABLED' : 'DISABLED'}
-        </Typography>
-      </Box>
+          ) : null}
+          <Typography>
+            <span>port</span> = {database.port}
+          </Typography>
+          {isMongoReplicaSet ? (
+            database.replica_set ? (
+              <Box alignItems="center" display="flex" flexDirection="row">
+                <Typography>
+                  <span>replica set</span> ={' '}
+                  <span style={{ fontFamily: theme.font.normal }}>
+                    {database.replica_set}
+                  </span>
+                </Typography>
+                <CopyTooltip
+                  className={classes.inlineCopyToolTip}
+                  text={database.replica_set}
+                />
+              </Box>
+            ) : (
+              <Typography>
+                <span>replica set</span> ={' '}
+                <span className={classes.provisioningText}>
+                  Your replica set will appear here once it is available.
+                </span>
+              </Typography>
+            )
+          ) : null}
+          <Typography>
+            <span>ssl</span> ={' '}
+            {database.ssl_connection ? 'ENABLED' : 'DISABLED'}
+          </Typography>
+        </Box>
+      )}
       <div className={classes.actionBtnsCtn}>
         {database.ssl_connection ? caCertificateJSX : null}
       </div>

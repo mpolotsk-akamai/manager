@@ -33,27 +33,16 @@ export const useIsDatabasesEnabled = () => {
     const isDatabasesV1Enabled = account.capabilities.includes(
       'Managed Databases'
     );
-
     const isDatabasesV2Enabled =
       account.capabilities.includes('Managed Databases Beta') &&
       flags.dbaasV2?.enabled;
 
     const isV2ExistingBetaUser =
-      account.capabilities.includes('Managed Databases') &&
-      account.capabilities.includes('Managed Databases Beta') &&
-      flags.dbaasV2?.enabled &&
-      flags.dbaasV2?.beta;
-
+      isDatabasesV1Enabled && isDatabasesV2Enabled && flags.dbaasV2?.beta;
     const isV2NewBetaUser =
-      account.capabilities.includes('Managed Databases Beta') &&
-      !account.capabilities.includes('Managed Databases') &&
-      flags.dbaasV2?.enabled &&
-      flags.dbaasV2?.beta;
-
+      !isDatabasesV1Enabled && isDatabasesV2Enabled && flags.dbaasV2?.beta;
     const isV2GAUser =
-      account.capabilities.includes('Managed Databases') &&
-      flags.dbaasV2?.enabled &&
-      !flags.dbaasV2?.beta;
+      isDatabasesV1Enabled && flags.dbaasV2?.enabled && !flags.dbaasV2?.beta;
 
     return {
       isDatabasesEnabled: isDatabasesV1Enabled || isDatabasesV2Enabled,

@@ -12,7 +12,6 @@ import { TabList } from 'src/components/Tabs/TabList';
 import { TabPanels } from 'src/components/Tabs/TabPanels';
 import { Tabs } from 'src/components/Tabs/Tabs';
 import { getRestrictedResourceText } from 'src/features/Account/utils';
-import DatabaseLandingTable from 'src/features/Databases/DatabaseLanding/DatabaseLandingTable';
 import { useIsDatabasesEnabled } from 'src/features/Databases/utilities';
 import { DatabaseClusterInfoBanner } from 'src/features/GlobalNotifications/DatabaseClusterInfoBanner';
 import { useOrder } from 'src/hooks/useOrder';
@@ -25,6 +24,7 @@ import {
 import { getAPIErrorOrDefault } from 'src/utilities/errorUtils';
 
 import { DatabaseEmptyState } from './DatabaseEmptyState';
+import DatabaseLandingTable from './DatabaseLandingTable';
 
 const preferenceKey = 'databases';
 
@@ -112,7 +112,7 @@ const DatabaseLanding = () => {
       page_size: legacyDatabasesPagination.pageSize,
     },
     legacyDatabasesFilter,
-    isV2ExistingBetaUser || isDatabasesV1Enabled
+    isV2ExistingBetaUser || (isDatabasesV1Enabled && !isV2GAUser)
   );
 
   const error = newDatabasesError || legacyDatabasesError;
@@ -132,13 +132,20 @@ const DatabaseLanding = () => {
 
   const showTabs = isV2ExistingBetaUser && legacyDatabases?.data.length !== 0;
 
+  const hasNoNewDatabases =
+    newDatabases?.data.length === 0 || newDatabases === undefined;
+  const hasNoLegacyDatabases =
+    legacyDatabases?.data.length === 0 || legacyDatabases === undefined;
+
+  const showEmptyForGAUser = isV2GAUser && hasNoNewDatabases;
   const showEmpty =
-    (newDatabases?.data.length === 0 || newDatabases === undefined) &&
-    (legacyDatabases?.data.length === 0 || legacyDatabases === undefined);
+    (hasNoNewDatabases && hasNoLegacyDatabases) || showEmptyForGAUser;
 
   if (showEmpty) {
     return <DatabaseEmptyState />;
   }
+
+  const isNewDatabase = isV2NewBetaUser || isV2GAUser;
 
   return (
     <React.Fragment>
@@ -186,21 +193,15 @@ const DatabaseLanding = () => {
           </Tabs>
         ) : (
           <DatabaseLandingTable
-            data={
-              isDatabasesV2Enabled ? newDatabases?.data : legacyDatabases?.data
-            }
             handleOrderChange={
-              isDatabasesV2Enabled
+              isNewDatabase
                 ? newDatabaseHandleOrderChange
                 : legacyDatabaseHandleOrderChange
             }
-            order={
-              isDatabasesV2Enabled ? newDatabaseOrder : legacyDatabaseOrder
-            }
-            orderBy={
-              isDatabasesV2Enabled ? newDatabaseOrderBy : legacyDatabaseOrderBy
-            }
-            isNewDatabase={isDatabasesV2Enabled}
+            data={isNewDatabase ? newDatabases?.data : legacyDatabases?.data}
+            isNewDatabase={isNewDatabase}
+            order={isNewDatabase ? newDatabaseOrder : legacyDatabaseOrder}
+            orderBy={isNewDatabase ? newDatabaseOrderBy : legacyDatabaseOrderBy}
           />
         )}
       </Box>

@@ -4,17 +4,26 @@ import { Hidden } from 'src/components/Hidden';
 import { PaginationFooter } from 'src/components/PaginationFooter/PaginationFooter';
 import { Table } from 'src/components/Table';
 import { TableBody } from 'src/components/TableBody';
+import { TableCell } from 'src/components/TableCell';
 import { TableHead } from 'src/components/TableHead';
 import { TableRow } from 'src/components/TableRow/TableRow';
 import { TableRowEmpty } from 'src/components/TableRowEmpty/TableRowEmpty';
 import { TableSortCell } from 'src/components/TableSortCell';
+import AddAccessControlDrawer from 'src/features/Databases/DatabaseDetail/AddAccessControlDrawer';
+import DatabaseSettingsDeleteClusterDialog from 'src/features/Databases/DatabaseDetail/DatabaseSettings/DatabaseSettingsDeleteClusterDialog';
+import DatabaseSettingsResetPasswordDialog from 'src/features/Databases/DatabaseDetail/DatabaseSettings/DatabaseSettingsResetPasswordDialog';
 import DatabaseLogo from 'src/features/Databases/DatabaseLanding/DatabaseLogo';
 import DatabaseRow from 'src/features/Databases/DatabaseLanding/DatabaseRow';
+import { useIsDatabasesEnabled } from 'src/features/Databases/utilities';
 import { usePagination } from 'src/hooks/usePagination';
+import { useDatabaseMutation } from 'src/queries/databases/databases';
 import { useInProgressEvents } from 'src/queries/events/events';
+import { stringToExtendedIP } from 'src/utilities/ipUtils';
 
 import type { DatabaseInstance } from '@linode/api-v4/lib/databases';
+import type { Engine } from '@linode/api-v4/lib/databases';
 import type { Order } from 'src/hooks/useOrder';
+import type { ExtendedIP } from 'src/utilities/ipUtils';
 
 const preferenceKey = 'databases';
 
@@ -33,9 +42,52 @@ const DatabaseLandingTable = ({
   orderBy,
 }: Props) => {
   const { data: events } = useInProgressEvents();
+  const { isV2GAUser } = useIsDatabasesEnabled();
 
   const dbPlatformType = isNewDatabase ? 'new' : 'legacy';
   const pagination = usePagination(1, preferenceKey, dbPlatformType);
+
+  const [
+    selectedDatabase,
+    setSelectedDatabase,
+  ] = React.useState<DatabaseInstance | null>();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [
+    isResetPasswordsDialogOpen,
+    setIsResetPasswordsDialogOpen,
+  ] = React.useState(false);
+  const [
+    isManageAccessControlsDialogOpen,
+    setIsManageAccessControlsDialogOpen,
+  ] = React.useState(false);
+
+  const [allowList, setAllowList] = React.useState<ExtendedIP[]>([]);
+
+  const { mutateAsync: updateDatabase } = useDatabaseMutation(
+    selectedDatabase?.engine as Engine,
+    selectedDatabase?.id as number
+  );
+  const handleManageAccessControls = (database: DatabaseInstance) => {
+    setSelectedDatabase(database);
+    setAllowList(database.allow_list.map(stringToExtendedIP));
+    setIsManageAccessControlsDialogOpen(true);
+  };
+
+  const onCloseAccesControls = () => {
+    setIsManageAccessControlsDialogOpen(false);
+    setSelectedDatabase(null);
+    setAllowList([]);
+  };
+
+  const handleDelete = (database: DatabaseInstance) => {
+    setSelectedDatabase(database);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleResetPassword = (database: DatabaseInstance) => {
+    setSelectedDatabase(database);
+    setIsResetPasswordsDialogOpen(true);
+  };
 
   return (
     <>
@@ -106,11 +158,18 @@ const DatabaseLandingTable = ({
                 Created
               </TableSortCell>
             </Hidden>
+            {isV2GAUser && <TableCell></TableCell>}
           </TableRow>
         </TableHead>
         <TableBody>
           {data?.map((database: DatabaseInstance) => (
             <DatabaseRow
+              handlers={{
+                handleDelete: () => handleDelete(database),
+                handleManageAccessControls: () =>
+                  handleManageAccessControls(database),
+                handleResetPassword: () => handleResetPassword(database),
+              }}
               database={database}
               events={events}
               isNewDatabase={isNewDatabase}
@@ -137,7 +196,36 @@ const DatabaseLandingTable = ({
         page={pagination.page}
         pageSize={pagination.pageSize}
       />
-      {isNewDatabase && <DatabaseLogo />}
+      {isNewDatabase ? (
+        <>
+          <DatabaseLogo />
+          {selectedDatabase && (
+            <>
+              <DatabaseSettingsDeleteClusterDialog
+                databaseEngine={selectedDatabase.engine}
+                databaseID={selectedDatabase.id}
+                databaseLabel={selectedDatabase?.label}
+                onClose={() => setIsDeleteDialogOpen(false)}
+                open={isDeleteDialogOpen}
+              />
+              <DatabaseSettingsResetPasswordDialog
+                databaseEngine={selectedDatabase.engine}
+                databaseID={selectedDatabase.id}
+                onClose={() => setIsResetPasswordsDialogOpen(false)}
+                open={isResetPasswordsDialogOpen}
+              />
+            </>
+          )}
+          <AddAccessControlDrawer
+            allowList={allowList}
+            onClose={onCloseAccesControls}
+            open={isManageAccessControlsDialogOpen}
+            updateDatabase={updateDatabase}
+          />
+        </>
+      ) : (
+        ''
+      )}
     </>
   );
 };

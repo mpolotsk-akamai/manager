@@ -36,23 +36,28 @@ export const DatabaseSummary: React.FC<Props> = (props) => {
       </Typography>
     </>
   );
-
+  const isGA = true;
   return (
     <Paper>
       <Grid container spacing={2}>
-        <Grid md={4} sm={12}>
+        <Grid md={isGA ? 12 : 4} sm={12}>
           <ClusterConfiguration database={database} />
         </Grid>
-        <Grid md={8} sm={12}>
+        <Grid md={isGA ? 12 : 8} sm={12}>
           <ConnectionDetails database={database} />
         </Grid>
       </Grid>
-      <Divider spacingBottom={16} spacingTop={28} />
-      <AccessControls
-        database={database}
-        description={description}
-        disabled={disabled}
-      />
+
+      {!isGA && (
+        <>
+          <Divider spacingBottom={16} spacingTop={28} />
+          <AccessControls
+            database={database}
+            description={description}
+            disabled={disabled}
+          />
+        </>
+      )}
     </Paper>
   );
 };
