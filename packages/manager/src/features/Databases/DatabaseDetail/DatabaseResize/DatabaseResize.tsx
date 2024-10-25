@@ -30,7 +30,7 @@ import {
 } from './DatabaseResize.style';
 import { DatabaseResizeCurrentConfiguration } from './DatabaseResizeCurrentConfiguration';
 
-import type { NodePricing } from '../../DatabaseCreate/DatabaseCreate';
+import type { NodePricing } from '../../DatabaseCreate/DatabaseNodeSelector';
 import type {
   ClusterSize,
   Database,
