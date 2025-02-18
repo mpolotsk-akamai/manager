@@ -6,6 +6,7 @@ import type {
   Database,
   DatabaseBackup,
   DatabaseEngine,
+  DatabaseEngineConfig,
   DatabaseInstance,
   DatabaseStatus,
   DatabaseType,
@@ -207,8 +208,6 @@ export const databaseFactory = Factory.Sync.makeFactory<Database>({
     advanced: {
       connect_timeout: 10,
       default_time_zone: '+03:00',
-      group_concat_max_len: 4,
-      information_schema_stats_expiry: 900,
       innodb_print_all_deadlocks: true,
       sql_mode:
         'ANSI,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,NO_ZERO_DATE,NO_ZERO_IN_DATE,STRICT_ALL_TABLES',
@@ -275,3 +274,91 @@ export const databaseEngineFactory = Factory.Sync.makeFactory<DatabaseEngine>({
   id: Factory.each((i) => `test/${i}`),
   version: Factory.each((i) => `${i}`),
 });
+
+export const databaseEngineConfigFactory = Factory.Sync.makeFactory<DatabaseEngineConfig>(
+  {
+    engine_config: {
+      advanced: {
+        connect_timeout: {
+          description:
+            'The number of seconds that the mysqld server waits for a connect packet before responding with Bad handshake',
+          example: 10,
+          maximum: 3600,
+          minimum: 2,
+          title: 'connect_timeout',
+          type: 'integer',
+        },
+        default_time_zone: {
+          description:
+            "Default server time zone as an offset from UTC (from -12:00 to +12:00), a time zone name, or 'SYSTEM' to use the MySQL server default.",
+          example: '+03:00',
+          maxLength: 100,
+          minLength: 2,
+          pattern: '^([-+][\\d:]*|[\\w/]*)$',
+          title: 'default_time_zone',
+          type: 'string',
+        },
+        innodb_print_all_deadlocks: {
+          description:
+            'When enabled, information about all deadlocks in InnoDB user transactions is recorded in the error log. Disabled by default.',
+          example: true,
+          title: 'innodb_print_all_deadlocks',
+          type: 'boolean',
+        },
+        log_output: {
+          description:
+            'The slow log output destination when slow_query_log is ON. To enable MySQL AI Insights, choose INSIGHTS. To use MySQL AI Insights and the mysql.slow_log table at the same time, choose INSIGHTS,TABLE. To only use the mysql.slow_log table, choose TABLE. To silence slow logs, choose NONE.',
+          enum: ['INSIGHTS', 'NONE', 'TABLE', 'INSIGHTS,TABLE'],
+          example: 'INSIGHTS',
+          title: 'log_output',
+          type: 'string',
+        },
+        sql_mode: {
+          description:
+            'Global SQL mode. Set to empty to use MySQL server defaults. When creating a new service and not setting this field Aiven default SQL mode (strict, SQL standard compliant) will be assigned.',
+          example: 'ANSI,TRADITIONAL',
+          maxLength: 1024,
+          pattern: '^[A-Z_]*(,[A-Z_]+)*$',
+          title: 'sql_mode',
+          type: 'string',
+        },
+      },
+      binlog_retention_period: {
+        example: 600,
+        maximum: 86400,
+        minimum: 600,
+        title:
+          'The minimum amount of time in seconds to keep binlog entries before deletion. This may be extended for services that require binlog entries for longer than the default for example if using the MySQL Debezium Kafka connector.',
+        type: 'integer',
+        description:
+          'The minimum amount of time in seconds to keep binlog entries before deletion. This may be extended for services that require binlog entries for longer than the default for example if using the MySQL Debezium Kafka connector.',
+      },
+      pg_stat_monitor_enable: {
+        description:
+          'Enable the pg_stat_monitor extension. Enabling this extension will cause the cluster to be restarted. When this extension is enabled, pg_stat_statements results for utility commands are unreliable',
+        restart_service: true,
+        title:
+          'Enable pg_stat_monitor extension if available for the current cluster',
+        type: 'boolean',
+        example: '',
+      },
+      pgbouncer: {
+        autodb_idle_timeout: {
+          example: 3600,
+          maximum: 86400,
+          minimum: 0,
+          title:
+            'If the automatically created database pools have been unused this many seconds, they are freed. If 0 then timeout is disabled. [seconds]',
+          type: 'integer',
+        },
+        autodb_pool_mode: {
+          default: 'transaction',
+          enum: ['transaction', 'session', 'statement'],
+          example: 'session',
+          title: 'PGBouncer pool mode',
+          type: 'string',
+        },
+      },
+    },
+  }
+);

@@ -5,8 +5,10 @@ import { useAccount } from 'src/queries/account/account';
 import { useDatabaseTypesQuery } from 'src/queries/databases/databases';
 import { isFeatureEnabledV2 } from 'src/utilities/accountCapabilities';
 
+import type { ConfigurationOption } from './DatabaseDetail/DatabaseAdvancedConfiguration/DatabaseConfigurationSelect';
 import type {
   DatabaseEngine,
+  DatabaseEngineConfig,
   DatabaseInstance,
   Engine,
   PendingUpdates,
@@ -264,3 +266,102 @@ export const formatConfigValue = (configValue: string) =>
     : configValue === 'undefined'
     ? ' - '
     : configValue;
+
+export const convertEngineConfigToOptions = (
+  allConfigs: DatabaseEngineConfig[] | undefined
+) => {
+  const options: ConfigurationOption[] = [];
+  const configs = allConfigs && allConfigs[0].engine_config;
+  // Recursive function to process each category or option
+  const processConfig = (
+    config: { [key: string]: any },
+    parentCategory: string = 'Other'
+  ) => {
+    for (const key in config) {
+      const value = config[key];
+      if (typeof value === 'object') {
+        // If it has "type" property, add option to the list
+        if ('type' in value) {
+          options.push({
+            category: parentCategory,
+            enum: value.enum,
+            // example: value.example,
+            label: key,
+            type: value.type,
+          });
+        }
+        // Else, it's a nested category
+        else {
+          processConfig(value, key);
+        }
+      }
+    }
+  };
+  if (configs !== undefined) {
+    processConfig(configs);
+  }
+
+  return options;
+};
+
+export const findConfigItem = (
+  configObject: { [key: string]: any } | undefined,
+  targetKey: string
+): ConfigurationOption | undefined => {
+  for (const key in configObject) {
+    if (key === targetKey) {
+      return configObject[key];
+    }
+    if (typeof configObject[key] === 'object' && configObject[key] !== null) {
+      const found = findConfigItem(configObject[key], targetKey);
+      if (found !== undefined) {
+        return found;
+      }
+    }
+  }
+  return undefined;
+};
+
+export const convertNewConfigsToArray = (
+  configs: { [key: string]: any },
+  allConfigs: { [key: string]: any } | undefined
+) => {
+  const options: ConfigurationOption[] = [];
+  for (const key in configs) {
+    const value = configs[key];
+    const item = findConfigItem(allConfigs, String(value.label));
+    if (item) {
+      options.push({ ...item, label: value.label });
+    }
+  }
+  return options;
+};
+
+export const convertExistingConfigsToArray = (
+  configs: { [key: string]: any },
+  allConfigs: { [key: string]: any } | undefined
+): ConfigurationOption[] => {
+  const options: ConfigurationOption[] = [];
+
+  for (const key in configs) {
+    const value = configs[key];
+
+    if (typeof value === 'object' && value !== null) {
+      for (const subKey in value) {
+        const subValue = value[subKey];
+
+        const foundConfig = findConfigItem(allConfigs, subKey);
+        if (foundConfig) {
+          options.push({ ...foundConfig, label: subKey, value: subValue });
+        }
+      }
+    } else {
+      const foundConfig = findConfigItem(allConfigs, key);
+      if (foundConfig) {
+        options.push({ ...foundConfig, label: key, value: value });
+      }
+    }
+  }
+
+  return options;
+};

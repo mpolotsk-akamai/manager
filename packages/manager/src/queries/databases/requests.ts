@@ -1,4 +1,5 @@
 import {
+  getDatabaseEngineConfig,
   getDatabaseEngines,
   getDatabaseTypes,
   getDatabases,
@@ -7,6 +8,7 @@ import {
 import { getAll } from 'src/utilities/getAll';
 
 import type {
+  DatabaseEngineConfig,
   DatabaseEngine,
   DatabaseInstance,
   DatabaseType,
@@ -26,6 +28,11 @@ export const getAllDatabaseEngines = () =>
   getAll<DatabaseEngine>((params) => getDatabaseEngines(params))().then(
     (data) => data.data
   );
+
+export const getAllEngineConfigs = (passedFilter: Filter = {}) =>
+  getAll<DatabaseEngineConfig>((params, filter) =>
+    getDatabaseEngineConfig(params, { ...filter, ...passedFilter })
+  )().then((data) => data.data);
 
 export const getAllDatabaseTypes = (passedFilter: Filter = {}) =>
   getAll<DatabaseType>((params, filter) =>

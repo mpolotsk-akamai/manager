@@ -1,0 +1,148 @@
+import {
+  Autocomplete,
+  FormControlLabel,
+  IconButton,
+  TextField,
+  Toggle,
+  Typography,
+} from '@linode/ui';
+import Close from '@mui/icons-material/Close';
+import React from 'react';
+
+import { formatConfigValue } from '../../utilities';
+import {
+  StyledBox,
+  StyledChip,
+  StyledWrapper,
+} from './DatabaseConfigurationItem.style';
+
+import type { ConfigurationOption } from './DatabaseConfigurationSelect';
+
+interface Props {
+  configItem?: ConfigurationOption;
+  configValue?: boolean | number | string;
+  engine: string;
+  errorText: string | undefined;
+  isNewConfig?: boolean;
+  onChange: (e: boolean | number | string) => void;
+  onRemove: (label: string) => void;
+}
+
+export const DatabaseConfigurationItem = (props: Props) => {
+  const {
+    configItem,
+    configValue,
+    engine,
+    errorText,
+    isNewConfig,
+    onChange,
+    onRemove,
+  } = props;
+  const configLabel = configItem?.label || '';
+
+  const renderInputField = () => {
+    if (configItem?.type === 'boolean') {
+      return (
+        <FormControlLabel
+          control={
+            <Toggle
+              checked={Boolean(configValue)}
+              onChange={(e) => onChange(e.target.checked)}
+            />
+          }
+          label={formatConfigValue(String(configValue))}
+        />
+      );
+    }
+    if (configItem?.type === 'string' && configItem.enum) {
+      const options =
+        configItem.enum?.map((option) => ({ label: option })) || [];
+      const selectedValue = options.find(
+        (option) => option.label === String(configValue)
+      );
+      return (
+        <Autocomplete
+          onChange={(_, selected) => {
+            onChange(selected?.label ?? '');
+          }}
+          renderInput={(params) => (
+            <TextField {...params} label="" placeholder="Select an option" />
+          )}
+          disableClearable
+          filterOptions={(options) => options}
+          isOptionEqualToValue={(option, value) => option.label === value.label}
+          label={''}
+          options={options}
+          value={selectedValue ?? options[0]}
+        />
+      );
+    }
+    if (configItem?.type === 'number' || configItem?.type === 'integer') {
+      return (
+        <TextField
+          errorText={errorText}
+          fullWidth
+          inputProps={{ max: configItem.maximum, min: configItem.minimum }}
+          label=""
+          name={configLabel}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={isNewConfig ? String(configItem?.example ?? '') : ''}
+          type="number"
+          value={Number(configValue)}
+        />
+      );
+    }
+
+    return (
+      <TextField
+        inputProps={{
+          maxLength: configItem?.maxLength,
+          minLength: configItem?.minLength,
+        }}
+        errorText={errorText}
+        fullWidth
+        label=""
+        name={configLabel}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={isNewConfig ? String(configItem?.example ?? '') : ''}
+        type="text"
+        value={configValue ? String(configValue) : ''}
+      />
+    );
+  };
+
+  return (
+    <StyledWrapper
+      alignItems="flex-start"
+      display="flex"
+      justifyContent="space-between"
+    >
+      <StyledBox>
+        <Typography
+          color={(theme) => theme.color.offBlack}
+          mr={0.5}
+          sx={(theme) => ({ font: theme.font.bold })}
+        >
+          {`${engine}.${configLabel}`}
+        </Typography>
+        {configItem?.restart_service && (
+          <StyledChip color="warning" label="restarts service" size="small" />
+        )}
+        <Typography mb={1.3} mt={0.5}>
+          {configItem?.description ? configItem?.description : 'No description'}
+        </Typography>
+        {renderInputField()}
+      </StyledBox>
+
+      {isNewConfig && configItem && (
+        <IconButton
+          disableRipple
+          onClick={() => onRemove(configItem?.label)}
+          size="large"
+        >
+          <Close />
+        </IconButton>
+      )}
+    </StyledWrapper>
+  );
+};
