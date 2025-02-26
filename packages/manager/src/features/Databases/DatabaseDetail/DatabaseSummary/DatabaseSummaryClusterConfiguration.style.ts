@@ -31,7 +31,7 @@ export const StyledLabelTypography = styled(Typography, {
   background:
     theme.palette.mode === 'dark'
       ? theme.bg.tableHeader
-      : theme.palette.grey[200],
+      : theme.tokens.color.Neutrals[5],
   color: theme.palette.mode === 'dark' ? theme.color.grey6 : 'inherit',
   font: theme.font.bold,
   height: '100%',

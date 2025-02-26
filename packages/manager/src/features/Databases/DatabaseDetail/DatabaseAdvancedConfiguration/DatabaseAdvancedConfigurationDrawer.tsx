@@ -1,5 +1,5 @@
 import { Button, Divider, Notice, Typography } from '@linode/ui';
-import Grid2 from '@mui/material/Unstable_Grid2';
+import Grid from '@mui/material/Grid2';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -158,21 +158,21 @@ export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
         </Typography>
       </Notice>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <Grid2
+        <Grid
           alignItems={'end'}
           container
           justifyContent="space-between"
-          lg={12}
+          size={12}
         >
-          <Grid2 xs={9}>
+          <Grid size={9}>
             <DatabaseConfigurationSelect
               configurations={availableConfigurations}
               errorText={undefined}
               label={selectedConfig?.label ?? ''}
               onChange={(config) => handleConfigChange(config)}
             />
-          </Grid2>
-          <Grid2 xs={2}>
+          </Grid>
+          <Grid size={2}>
             <Button
               buttonType="primary"
               disabled={!selectedConfig}
@@ -181,8 +181,8 @@ export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
             >
               Add
             </Button>
-          </Grid2>
-        </Grid2>
+          </Grid>
+        </Grid>
 
         <Divider spacingBottom={20} spacingTop={24} />
         {newConfigsArray.length > 0 &&

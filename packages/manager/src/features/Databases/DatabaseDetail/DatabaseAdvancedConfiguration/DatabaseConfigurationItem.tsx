@@ -119,9 +119,7 @@ export const DatabaseConfigurationItem = (props: Props) => {
     >
       <StyledBox>
         <Typography
-          color={(theme) => theme.color.offBlack}
-          mr={0.5}
-          sx={(theme) => ({ font: theme.font.bold })}
+          sx={(theme) => ({ font: theme.tokens.typography.Body.Bold, mr: 0.5 })}
         >
           {`${engine}.${configLabel}`}
         </Typography>
