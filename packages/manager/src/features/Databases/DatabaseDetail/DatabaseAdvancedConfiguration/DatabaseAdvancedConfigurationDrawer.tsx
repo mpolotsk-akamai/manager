@@ -1,5 +1,6 @@
 import { Button, Divider, Notice, Typography } from '@linode/ui';
 import Grid from '@mui/material/Grid2';
+import { useSnackbar } from 'notistack';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
@@ -20,13 +21,14 @@ import { DatabaseConfigurationItem } from './DatabaseConfigurationItem';
 import { DatabaseConfigurationSelect } from './DatabaseConfigurationSelect';
 
 import type { ConfigurationOption } from './DatabaseConfigurationSelect';
+import type { UpdateDatabasePayload } from '@linode/api-v4';
 import type {
   ConfigCategoryValues,
+  ConfigValue,
   Database,
   DatabaseInstance,
   DatabaseInstanceAdvancedConfig,
 } from '@linode/api-v4';
-import type { UpdateDatabasePayload } from '@linode/api-v4';
 
 interface Props {
   database: Database | DatabaseInstance;
@@ -35,30 +37,28 @@ interface Props {
 }
 
 export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
-  const { onClose, open } = props;
+  const { database, onClose, open } = props;
+  const { engine, engine_config: enginConfigurationOptions, id } = database;
 
+  const { enqueueSnackbar } = useSnackbar();
   const [
     selectedConfig,
     setSelectedConfig,
   ] = useState<ConfigurationOption | null>(null);
   const [addedConfigs, setAddedConfigs] = useState<ConfigurationOption[]>([]);
 
-  const { engine, engine_config: enginConfigurationOptions, id } = database;
-
   const {
-    // error: advancedConfigError,
-    // isPending: submitInProgress,
+    error: updateDatabaseError,
+    isPending: isUpdating,
     mutateAsync: updateDatabase,
   } = useDatabaseMutation(engine, id);
 
-  const {
-    data: allConfigs,
-    // error: allConfigsError,
-    // isLoading: allConfigsLoading,
-  } = useDatabaseAdvancedConfigurationQuery({ engine }, true);
+  const { data: allConfigs } = useDatabaseAdvancedConfigurationQuery(
+    engine,
+    true
+  );
 
   const configurations = convertEngineConfigToOptions(allConfigs);
-
   const existingConfigsArray = convertExistingConfigsToArray(
     enginConfigurationOptions,
     allConfigs
@@ -79,19 +79,15 @@ export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
   const handleAddConfiguration = (config: ConfigurationOption | null) => {
     if (config && !addedConfigs.some((o) => o.label === config.label)) {
       setAddedConfigs((prev) => [config, ...prev]);
-
-      const key = String(config.label);
-      let defaultValue: boolean | number | string | undefined;
-
-      // console.log('config = ',config.enum)
+      let defaultValue: ConfigValue | undefined;
       if (config.type === 'boolean') {
         defaultValue = false;
       } else if (config.enum && config.enum?.length > 0) {
         defaultValue = config.enum[0];
-      } else if (config.type === 'number' || config.type === 'integer') {
+      } else {
         defaultValue = undefined;
       }
-      setValue(key, defaultValue);
+      setValue(String(config.label), defaultValue);
     }
     setSelectedConfig(null);
   };
@@ -109,42 +105,51 @@ export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
     const key = option.label;
     acc[key] = option.value ?? '';
     return acc;
-  }, {} as Record<string, boolean | number | string>);
+  }, {} as Record<string, ConfigValue>);
 
   const { control, handleSubmit, setValue } = useForm<{
-    [key: string]: boolean | number | string | undefined;
+    [key: string]: ConfigValue | undefined;
   }>({
     defaultValues: initialValues,
   });
 
   const onSubmit = async (formData: ConfigCategoryValues) => {
-    const structuredConfig: DatabaseInstanceAdvancedConfig = {};
+    const formattedConfigData: DatabaseInstanceAdvancedConfig = {};
     configurations.forEach(({ category, label }) => {
       const value = formData[label];
-
       if (value !== undefined) {
         if (category === 'Other') {
-          structuredConfig[label] = value;
+          formattedConfigData[label] = value;
         } else {
-          if (!structuredConfig[category]) {
-            structuredConfig[category] = {};
+          if (!formattedConfigData[category]) {
+            formattedConfigData[category] = {};
           }
-          (structuredConfig[category] as ConfigCategoryValues)[label] = value;
+          (formattedConfigData[category] as ConfigCategoryValues)[
+            label
+          ] = value;
         }
       }
     });
 
     const payload: UpdateDatabasePayload = {
-      engine_config: structuredConfig,
+      engine_config: formattedConfigData,
     };
-    try {
-      await updateDatabase(payload);
+
+    await updateDatabase(payload).then(() => {
       onClose();
-    } catch (errors) {}
+      enqueueSnackbar('Advanced Configuration settings saved', {
+        variant: 'success',
+      });
+    });
   };
 
   return (
     <Drawer onClose={onClose} open={open} title="Advanced Configuration">
+      {Boolean(updateDatabaseError) && (
+        <Notice spacingBottom={16} spacingTop={16} variant="error">
+          {updateDatabaseError?.[0].reason}
+        </Notice>
+      )}
       <Typography>
         Advanced parameters to configure your database cluster.
       </Typography>
@@ -234,6 +239,7 @@ export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
         <ActionsPanel
           primaryButtonProps={{
             label: 'Save and Restart Service',
+            loading: isUpdating,
             type: 'submit',
           }}
           secondaryButtonProps={{

@@ -17,14 +17,15 @@ import {
 } from './DatabaseConfigurationItem.style';
 
 import type { ConfigurationOption } from './DatabaseConfigurationSelect';
+import type { ConfigValue } from '@linode/api-v4';
 
 interface Props {
   configItem?: ConfigurationOption;
-  configValue?: boolean | number | string;
+  configValue?: ConfigValue;
   engine: string;
   errorText: string | undefined;
   isNewConfig?: boolean;
-  onChange: (e: boolean | number | string) => void;
+  onChange: (config: ConfigValue) => void;
   onRemove: (label: string) => void;
 }
 
@@ -80,12 +81,14 @@ export const DatabaseConfigurationItem = (props: Props) => {
     if (configItem?.type === 'number' || configItem?.type === 'integer') {
       return (
         <TextField
+          slotProps={{
+            htmlInput: { max: configItem.maximum, min: configItem.minimum },
+          }}
           errorText={errorText}
           fullWidth
-          inputProps={{ max: configItem.maximum, min: configItem.minimum }}
           label=""
           name={configLabel}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={(e) => onChange(Number(e.target.value))}
           placeholder={isNewConfig ? String(configItem?.example ?? '') : ''}
           type="number"
           value={Number(configValue)}
@@ -95,9 +98,11 @@ export const DatabaseConfigurationItem = (props: Props) => {
 
     return (
       <TextField
-        inputProps={{
-          maxLength: configItem?.maxLength,
-          minLength: configItem?.minLength,
+        slotProps={{
+          htmlInput: {
+            maxLength: configItem?.maxLength,
+            minLength: configItem?.minLength,
+          },
         }}
         errorText={errorText}
         fullWidth
@@ -126,9 +131,9 @@ export const DatabaseConfigurationItem = (props: Props) => {
         {configItem?.restart_service && (
           <StyledChip color="warning" label="restarts service" size="small" />
         )}
-        <Typography mb={1.3} mt={0.5}>
-          {configItem?.description ? configItem?.description : 'No description'}
-        </Typography>
+        {configItem?.description && (
+          <Typography mt={0.5}>{configItem?.description}</Typography>
+        )}
         {renderInputField()}
       </StyledBox>
 

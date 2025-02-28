@@ -354,10 +354,8 @@ export const resumeDatabase = (engine: Engine, databaseID: number) =>
  * Return detailed list of all the configuration options
  *
  */
-export const getDatabaseEngineConfig = (params?: Params, filter?: Filter) =>
-  Request<Page<DatabaseEngineConfig>>(
-    setURL(`${API_ROOT}/databases/config`),
-    setMethod('GET'),
-    setParams(params),
-    setXFilter(filter)
+export const getDatabaseEngineConfig = (engine: Engine) =>
+  Request<DatabaseEngineConfig>(
+    setURL(`${API_ROOT}/databases/${encodeURIComponent(engine)}/config`),
+    setMethod('GET')
   );

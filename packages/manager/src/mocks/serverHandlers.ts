@@ -369,11 +369,9 @@ const databases = [
   http.post('*/databases/:engine/instances/:databaseId/resume', () => {
     return HttpResponse.json({});
   }),
-  // TODO: config check this
-  http.get('*/databases/config', () => {
-    return HttpResponse.json(
-      makeResourcePage([databaseEngineConfigFactory.build()])
-    );
+
+  http.get('*/databases/:engine/config', () => {
+    return HttpResponse.json(databaseEngineConfigFactory.build());
   }),
 ];
 

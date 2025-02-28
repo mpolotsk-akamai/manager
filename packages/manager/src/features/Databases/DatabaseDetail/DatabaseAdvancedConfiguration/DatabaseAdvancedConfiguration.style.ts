@@ -5,18 +5,19 @@ import { StyledValueGrid } from '../DatabaseSummary/DatabaseSummaryClusterConfig
 export const StyledConfigValue = styled(StyledValueGrid, {
   label: 'StyledValueGrid',
 })(({ theme }) => ({
-  padding: `${theme.spacing(0.5)}
-            ${theme.spacing(1.9)}
-            ${theme.spacing(0.5)}
-            ${theme.spacing(0.8)}`,
+  padding: `${theme.tokens.spacing[10]} ${theme.tokens.spacing[50]}`,
 }));
 
 export const GroupHeader = styled('div')(({ theme }) => ({
   background:
-    theme.palette.mode === 'dark' ? theme.color.grey9 : theme.palette.grey[200],
-  color: theme.color.headline,
-  font: "700 0.75rem/1rem 'Nunito Sans'",
-  fontSize: '0.8rem',
+    theme.palette.mode === 'dark'
+      ? theme.tokens.color.Neutrals[90]
+      : theme.tokens.color.Neutrals[5],
+  color:
+    theme.palette.mode === 'dark'
+      ? theme.tokens.color.Neutrals[5]
+      : theme.tokens.color.Neutrals[100],
+  font: theme.tokens.typography.Label.Bold.Xs,
   padding: '8px 12px',
   position: 'sticky',
   textTransform: 'uppercase',
@@ -24,6 +25,12 @@ export const GroupHeader = styled('div')(({ theme }) => ({
   zIndex: 1,
 }));
 export const GroupItems = styled('ul')(({ theme }) => ({
-  color: theme.color.headline,
+  '& li': {
+    color:
+      theme.palette.mode === 'dark'
+        ? theme.tokens.color.Neutrals[5]
+        : theme.tokens.color.Neutrals[100],
+    font: theme.tokens.typography.Label.Regular.Xs,
+  },
   padding: 0,
 }));

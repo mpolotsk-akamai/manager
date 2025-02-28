@@ -7,6 +7,7 @@ import { isFeatureEnabledV2 } from 'src/utilities/accountCapabilities';
 
 import type { ConfigurationOption } from './DatabaseDetail/DatabaseAdvancedConfiguration/DatabaseConfigurationSelect';
 import type {
+  ConfigurationItem,
   DatabaseEngine,
   DatabaseEngineConfig,
   DatabaseInstance,
@@ -266,33 +267,35 @@ export const formatConfigValue = (configValue: string) =>
     : configValue === 'undefined'
     ? ' - '
     : configValue;
-
+// TODO: add description
 export const convertEngineConfigToOptions = (
-  allConfigs: DatabaseEngineConfig[] | undefined
+  allConfigs: DatabaseEngineConfig | undefined
 ) => {
   const options: ConfigurationOption[] = [];
-  const configs = allConfigs && allConfigs[0].engine_config;
-  // Recursive function to process each category or option
+  const configs = allConfigs && allConfigs.engine_config;
+
   const processConfig = (
-    config: { [key: string]: any },
+    config: Record<
+      string,
+      ConfigurationItem | Record<string, ConfigurationItem>
+    >,
     parentCategory: string = 'Other'
   ) => {
     for (const key in config) {
-      const value = config[key];
+      const value = config[key] as ConfigurationItem;
       if (typeof value === 'object') {
         // If it has "type" property, add option to the list
         if ('type' in value) {
           options.push({
             category: parentCategory,
-            enum: value.enum,
-            // example: value.example,
+            enum: value.enum ?? [],
             label: key,
             type: value.type,
           });
         }
         // Else, it's a nested category
         else {
-          processConfig(value, key);
+          processConfig(value as Record<string, ConfigurationItem>, key);
         }
       }
     }
@@ -303,7 +306,7 @@ export const convertEngineConfigToOptions = (
 
   return options;
 };
-
+// TODO: add description
 export const findConfigItem = (
   configObject: { [key: string]: any } | undefined,
   targetKey: string
@@ -321,7 +324,7 @@ export const findConfigItem = (
   }
   return undefined;
 };
-
+// TODO: add description
 export const convertNewConfigsToArray = (
   configs: { [key: string]: any },
   allConfigs: { [key: string]: any } | undefined
@@ -336,7 +339,7 @@ export const convertNewConfigsToArray = (
   }
   return options;
 };
-
+// TODO: add description
 export const convertExistingConfigsToArray = (
   configs: { [key: string]: any },
   allConfigs: { [key: string]: any } | undefined
