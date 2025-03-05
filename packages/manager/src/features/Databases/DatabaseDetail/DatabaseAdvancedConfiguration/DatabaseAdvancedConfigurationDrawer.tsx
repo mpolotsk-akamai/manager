@@ -155,7 +155,7 @@ export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
       </Typography>
       <Link to="">Learn more.</Link>
 
-      <Notice important top={24} variant="info">
+      <Notice important sx={{ mb: 1, mt: 3 }} variant="info">
         <Typography>
           There is no way to reset advanced configuration options to default.
           Options that you add cannot be removed. Changing or adding some

@@ -5,7 +5,7 @@ import { StyledValueGrid } from '../DatabaseSummary/DatabaseSummaryClusterConfig
 export const StyledConfigValue = styled(StyledValueGrid, {
   label: 'StyledValueGrid',
 })(({ theme }) => ({
-  padding: `${theme.tokens.spacing[10]} ${theme.tokens.spacing[50]}`,
+  padding: `${theme.tokens.spacing.S4} ${theme.tokens.spacing.S4}`,
 }));
 
 export const GroupHeader = styled('div')(({ theme }) => ({

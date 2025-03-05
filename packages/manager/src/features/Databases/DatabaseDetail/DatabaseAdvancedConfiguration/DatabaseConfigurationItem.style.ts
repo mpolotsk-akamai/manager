@@ -4,7 +4,7 @@ import { styled } from '@mui/material';
 export const StyledWrapper = styled(Box, {
   label: 'StyledWrapper',
 })(({ theme }) => ({
-  marginBottom: theme.tokens.spacing[50],
+  marginBottom: theme.tokens.spacing.S12,
 }));
 
 export const StyledBox = styled(Box, {
@@ -15,7 +15,7 @@ export const StyledBox = styled(Box, {
       ? theme.tokens.color.Neutrals[90]
       : theme.tokens.color.Neutrals[5],
   minWidth: '90%',
-  padding: theme.tokens.spacing[50],
+  padding: theme.tokens.spacing.S8,
 }));
 
 export const StyledChip = styled(Chip, {
