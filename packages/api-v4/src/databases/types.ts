@@ -54,16 +54,14 @@ export interface DatabaseBackup {
 export interface ConfigurationItem {
   description?: string;
   example?: string | number | boolean;
-  default?: string | number | boolean;
   minimum?: number;
   maximum?: number;
   maxLength?: number;
   minLength?: number;
   pattern?: string;
-  title?: string;
   type?: string | number | boolean;
   enum?: string[];
-  restart_service?: boolean;
+  restart_cluster?: boolean;
 }
 
 export type ConfigValue = number | string | boolean;

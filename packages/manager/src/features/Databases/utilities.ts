@@ -7,10 +7,13 @@ import { isFeatureEnabledV2 } from 'src/utilities/accountCapabilities';
 
 import type { ConfigurationOption } from './DatabaseDetail/DatabaseAdvancedConfiguration/DatabaseConfigurationSelect';
 import type {
+  ConfigCategoryValues,
+  ConfigValue,
   ConfigurationItem,
   DatabaseEngine,
   DatabaseEngineConfig,
   DatabaseInstance,
+  DatabaseInstanceAdvancedConfig,
   Engine,
   PendingUpdates,
 } from '@linode/api-v4';
@@ -267,7 +270,14 @@ export const formatConfigValue = (configValue: string) =>
     : configValue === 'undefined'
     ? ' - '
     : configValue;
-// TODO: add description
+
+/**
+ * Converts a nested database engine configuration into a flat array of configuration options.
+ *
+ * @param allConfigs
+ * @returns An array of structured configuration options.
+ */
+
 export const convertEngineConfigToOptions = (
   allConfigs: DatabaseEngineConfig | undefined
 ) => {
@@ -306,43 +316,68 @@ export const convertEngineConfigToOptions = (
 
   return options;
 };
-// TODO: add description
+/**
+ * Recursively searches for a configuration item by its key within a nested configuration object.
+ *
+ * @param configObject
+ * @param targetKey
+ * @returns The found configuration option or `undefined` if not found.
+ */
 export const findConfigItem = (
-  configObject: { [key: string]: any } | undefined,
+  configObject: DatabaseEngineConfig | undefined,
   targetKey: string
-): ConfigurationOption | undefined => {
-  for (const key in configObject) {
+): ConfigurationItem | undefined => {
+  for (const key in configObject?.engine_config) {
+    const value = configObject.engine_config[key];
+
     if (key === targetKey) {
-      return configObject[key];
+      return value as ConfigurationItem;
     }
-    if (typeof configObject[key] === 'object' && configObject[key] !== null) {
-      const found = findConfigItem(configObject[key], targetKey);
-      if (found !== undefined) {
-        return found;
-      }
+
+    if (typeof value === 'object' && value !== null) {
+      const found = findConfigItem(
+        { engine_config: value as Record<string, ConfigurationItem> },
+        targetKey
+      );
+      if (found) return found;
     }
   }
+
   return undefined;
 };
-// TODO: add description
+
+/**
+ * Converts newly added database configurations into an array of structured configuration options.
+ *
+ * @param configs
+ * @param allConfigs
+ * @returns An array of structured configuration options with metadata from `allConfigs`.
+ */
 export const convertNewConfigsToArray = (
-  configs: { [key: string]: any },
-  allConfigs: { [key: string]: any } | undefined
+  configs: ConfigurationOption[],
+  allConfigs: DatabaseEngineConfig | undefined
 ) => {
   const options: ConfigurationOption[] = [];
   for (const key in configs) {
     const value = configs[key];
     const item = findConfigItem(allConfigs, String(value.label));
     if (item) {
-      options.push({ ...item, label: value.label });
+      options.push({ ...item, category: value.category, label: value.label });
     }
   }
   return options;
 };
-// TODO: add description
+
+/**
+ * Converts existing database configurations into an array of configuration options.
+ *
+ * @param configs
+ * @param allConfigs
+ * @returns An array of structured configuration options with metadata from `allConfigs`.
+ */
 export const convertExistingConfigsToArray = (
-  configs: { [key: string]: any },
-  allConfigs: { [key: string]: any } | undefined
+  configs: DatabaseInstanceAdvancedConfig,
+  allConfigs: DatabaseEngineConfig | undefined
 ): ConfigurationOption[] => {
   const options: ConfigurationOption[] = [];
 
@@ -355,16 +390,87 @@ export const convertExistingConfigsToArray = (
 
         const foundConfig = findConfigItem(allConfigs, subKey);
         if (foundConfig) {
-          options.push({ ...foundConfig, label: subKey, value: subValue });
+          options.push({
+            ...foundConfig,
+            category: '',
+            label: subKey,
+            value: subValue,
+          });
         }
       }
     } else {
       const foundConfig = findConfigItem(allConfigs, key);
       if (foundConfig) {
-        options.push({ ...foundConfig, label: key, value: value });
+        options.push({
+          ...foundConfig,
+          category: '',
+          label: key,
+          value: value,
+        });
       }
     }
   }
-
   return options;
+};
+
+/**
+ * Formats the configuration payload by organizing form data into categorized fields.
+ *
+ * @param formData
+ * @param configurations
+ * @returns A structured object where configurations are grouped by category.
+ */
+export const formatConfigPayload = (
+  formData: ConfigCategoryValues,
+  configurations: ConfigurationOption[]
+) => {
+  const formattedConfigData: DatabaseInstanceAdvancedConfig = {};
+  configurations.forEach(({ category, label }) => {
+    const value = formData[label];
+    if (value !== undefined) {
+      if (category === 'Other') {
+        formattedConfigData[label] = value;
+      } else {
+        if (!formattedConfigData[category]) {
+          formattedConfigData[category] = {};
+        }
+        (formattedConfigData[category] as ConfigCategoryValues)[label] = value;
+      }
+    }
+  });
+  return formattedConfigData;
+};
+
+/**
+ * Extracts and returns only the fields that have been modified.
+ *
+ * @param dirtyFields
+ * @param initialConfigValues
+ * @param addedConfigs
+ * @param formData
+ * @returns An object containing only the modified configuration fields.
+ */
+export const getModifiedConfigFields = (
+  dirtyFields: Partial<
+    Readonly<{
+      [x: string]: boolean;
+    }>
+  >,
+  initialConfigValues: Record<string, ConfigValue>,
+  addedConfigs: ConfigurationOption[],
+  formData: ConfigCategoryValues
+) => {
+  const modifiedFields: ConfigCategoryValues = {};
+  Object.keys(dirtyFields).forEach((field) => {
+    if (initialConfigValues.hasOwnProperty(field)) {
+      modifiedFields[field] = formData[field];
+    }
+  });
+  addedConfigs.forEach((config) => {
+    const field = config.label;
+    if (dirtyFields[field] || formData[field] !== undefined) {
+      modifiedFields[field] = formData[field];
+    }
+  });
+  return modifiedFields;
 };

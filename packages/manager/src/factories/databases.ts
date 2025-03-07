@@ -285,7 +285,7 @@ export const databaseEngineConfigFactory = Factory.Sync.makeFactory<DatabaseEngi
           example: 10,
           maximum: 3600,
           minimum: 2,
-          title: 'connect_timeout',
+          restart_cluster: false,
           type: 'integer',
         },
         default_time_zone: {
@@ -295,14 +295,14 @@ export const databaseEngineConfigFactory = Factory.Sync.makeFactory<DatabaseEngi
           maxLength: 100,
           minLength: 2,
           pattern: '^([-+][\\d:]*|[\\w/]*)$',
-          title: 'default_time_zone',
+          restart_cluster: false,
           type: 'string',
         },
         innodb_print_all_deadlocks: {
           description:
             'When enabled, information about all deadlocks in InnoDB user transactions is recorded in the error log. Disabled by default.',
           example: true,
-          title: 'innodb_print_all_deadlocks',
+          restart_cluster: false,
           type: 'boolean',
         },
         log_output: {
@@ -310,7 +310,7 @@ export const databaseEngineConfigFactory = Factory.Sync.makeFactory<DatabaseEngi
             'The slow log output destination when slow_query_log is ON. To enable MySQL AI Insights, choose INSIGHTS. To use MySQL AI Insights and the mysql.slow_log table at the same time, choose INSIGHTS,TABLE. To only use the mysql.slow_log table, choose TABLE. To silence slow logs, choose NONE.',
           enum: ['INSIGHTS', 'NONE', 'TABLE', 'INSIGHTS,TABLE'],
           example: 'INSIGHTS',
-          title: 'log_output',
+          restart_cluster: false,
           type: 'string',
         },
         sql_mode: {
@@ -319,43 +319,37 @@ export const databaseEngineConfigFactory = Factory.Sync.makeFactory<DatabaseEngi
           example: 'ANSI,TRADITIONAL',
           maxLength: 1024,
           pattern: '^[A-Z_]*(,[A-Z_]+)*$',
-          title: 'sql_mode',
+          restart_cluster: true,
           type: 'string',
         },
       },
       binlog_retention_period: {
+        description:
+          'The minimum amount of time in seconds to keep binlog entries before deletion. This may be extended for services that require binlog entries for longer than the default for example if using the MySQL Debezium Kafka connector.',
         example: 600,
         maximum: 86400,
         minimum: 600,
-        title:
-          'The minimum amount of time in seconds to keep binlog entries before deletion. This may be extended for services that require binlog entries for longer than the default for example if using the MySQL Debezium Kafka connector.',
+        restart_cluster: false,
         type: 'integer',
-        description:
-          'The minimum amount of time in seconds to keep binlog entries before deletion. This may be extended for services that require binlog entries for longer than the default for example if using the MySQL Debezium Kafka connector.',
       },
       pg_stat_monitor_enable: {
         description:
           'Enable the pg_stat_monitor extension. Enabling this extension will cause the cluster to be restarted. When this extension is enabled, pg_stat_statements results for utility commands are unreliable',
-        restart_service: true,
-        title:
-          'Enable pg_stat_monitor extension if available for the current cluster',
+        restart_cluster: true,
         type: 'boolean',
-        example: '',
       },
       pgbouncer: {
         autodb_idle_timeout: {
           example: 3600,
           maximum: 86400,
           minimum: 0,
-          title:
-            'If the automatically created database pools have been unused this many seconds, they are freed. If 0 then timeout is disabled. [seconds]',
+          restart_cluster: false,
           type: 'integer',
         },
         autodb_pool_mode: {
-          default: 'transaction',
           enum: ['transaction', 'session', 'statement'],
           example: 'session',
-          title: 'PGBouncer pool mode',
+          restart_cluster: false,
           type: 'string',
         },
       },

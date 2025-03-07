@@ -1,7 +1,7 @@
 import { Button, Divider, Notice, Typography } from '@linode/ui';
 import Grid from '@mui/material/Grid2';
 import { useSnackbar } from 'notistack';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 import { ActionsPanel } from 'src/components/ActionsPanel/ActionsPanel';
@@ -16,19 +16,20 @@ import {
   convertEngineConfigToOptions,
   convertExistingConfigsToArray,
   convertNewConfigsToArray,
+  formatConfigPayload,
+  getModifiedConfigFields,
 } from '../../utilities';
 import { DatabaseConfigurationItem } from './DatabaseConfigurationItem';
 import { DatabaseConfigurationSelect } from './DatabaseConfigurationSelect';
 
 import type { ConfigurationOption } from './DatabaseConfigurationSelect';
-import type { UpdateDatabasePayload } from '@linode/api-v4';
 import type {
   ConfigCategoryValues,
   ConfigValue,
   Database,
   DatabaseInstance,
-  DatabaseInstanceAdvancedConfig,
 } from '@linode/api-v4';
+import type { UpdateDatabasePayload } from '@linode/api-v4';
 
 interface Props {
   database: Database | DatabaseInstance;
@@ -38,8 +39,7 @@ interface Props {
 
 export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
   const { database, onClose, open } = props;
-  const { engine, engine_config: enginConfigurationOptions, id } = database;
-
+  const { engine, engine_config: existingEngineConfigs, id } = database;
   const { enqueueSnackbar } = useSnackbar();
   const [
     selectedConfig,
@@ -60,18 +60,15 @@ export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
 
   const configurations = convertEngineConfigToOptions(allConfigs);
   const existingConfigsArray = convertExistingConfigsToArray(
-    enginConfigurationOptions,
+    existingEngineConfigs,
     allConfigs
   );
   const newConfigsArray = convertNewConfigsToArray(addedConfigs, allConfigs);
 
-  // Get all currently used configurations (existing + added)
   const usedConfigs = new Set([
     ...existingConfigsArray.map((config) => config.label),
     ...addedConfigs.map((config) => config.label),
   ]);
-
-  // Filter configurations to exclude already used ones
   const availableConfigurations = configurations.filter(
     (config) => !usedConfigs.has(config.label)
   );
@@ -79,15 +76,12 @@ export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
   const handleAddConfiguration = (config: ConfigurationOption | null) => {
     if (config && !addedConfigs.some((o) => o.label === config.label)) {
       setAddedConfigs((prev) => [config, ...prev]);
-      let defaultValue: ConfigValue | undefined;
-      if (config.type === 'boolean') {
-        defaultValue = false;
-      } else if (config.enum && config.enum?.length > 0) {
-        defaultValue = config.enum[0];
-      } else {
-        defaultValue = undefined;
-      }
-      setValue(String(config.label), defaultValue);
+      setValue(
+        config.label,
+        config.type === 'boolean'
+          ? false
+          : config.enum?.[0] ?? (config.type === 'string' ? '' : 0)
+      );
     }
     setSelectedConfig(null);
   };
@@ -101,38 +95,44 @@ export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
     setSelectedConfig(config);
   };
 
-  const initialValues = existingConfigsArray.reduce((acc, option) => {
-    const key = option.label;
-    acc[key] = option.value ?? '';
-    return acc;
-  }, {} as Record<string, ConfigValue>);
+  const initialValues = useMemo(
+    () =>
+      Object.fromEntries(
+        existingConfigsArray.map((opt) => [opt.label, opt.value ?? ''])
+      ),
+    [existingConfigsArray]
+  );
 
-  const { control, handleSubmit, setValue } = useForm<{
-    [key: string]: ConfigValue | undefined;
-  }>({
+  const {
+    control,
+    formState: { dirtyFields, isDirty },
+    handleSubmit,
+    reset,
+    setValue,
+  } = useForm<{ [key: string]: ConfigValue | undefined }>({
     defaultValues: initialValues,
   });
 
+  useEffect(() => {
+    if (allConfigs) {
+      reset(initialValues);
+    }
+  }, [allConfigs]);
+
   const onSubmit = async (formData: ConfigCategoryValues) => {
-    const formattedConfigData: DatabaseInstanceAdvancedConfig = {};
-    configurations.forEach(({ category, label }) => {
-      const value = formData[label];
-      if (value !== undefined) {
-        if (category === 'Other') {
-          formattedConfigData[label] = value;
-        } else {
-          if (!formattedConfigData[category]) {
-            formattedConfigData[category] = {};
-          }
-          (formattedConfigData[category] as ConfigCategoryValues)[
-            label
-          ] = value;
-        }
-      }
-    });
+    if (!dirtyFields) {
+      return;
+    }
+    const modifiedFields = getModifiedConfigFields(
+      dirtyFields,
+      initialValues,
+      newConfigsArray,
+      formData
+    );
+    if (!Object.keys(modifiedFields).length) return;
 
     const payload: UpdateDatabasePayload = {
-      engine_config: formattedConfigData,
+      engine_config: formatConfigPayload(modifiedFields, configurations),
     };
 
     await updateDatabase(payload).then(() => {
@@ -218,7 +218,7 @@ export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
               render={({ field, fieldState }) => (
                 <DatabaseConfigurationItem
                   configItem={option}
-                  configValue={field.value ?? initialValues[option.label]}
+                  configValue={field.value}
                   engine={engine}
                   errorText={fieldState.error?.message}
                   onChange={field.onChange}
@@ -238,6 +238,7 @@ export const DatabaseAdvancedConfigurationDrawer = (props: Props) => {
         <Divider spacingBottom={20} spacingTop={24} />
         <ActionsPanel
           primaryButtonProps={{
+            disabled: !isDirty && newConfigsArray.length === 0,
             label: 'Save and Restart Service',
             loading: isUpdating,
             type: 'submit',

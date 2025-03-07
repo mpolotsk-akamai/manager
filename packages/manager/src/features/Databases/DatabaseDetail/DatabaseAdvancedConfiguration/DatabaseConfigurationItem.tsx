@@ -128,7 +128,7 @@ export const DatabaseConfigurationItem = (props: Props) => {
         >
           {`${engine}.${configLabel}`}
         </Typography>
-        {configItem?.restart_service && (
+        {configItem?.restart_cluster && (
           <StyledChip color="warning" label="restarts service" size="small" />
         )}
         {configItem?.description && (
