@@ -10,12 +10,15 @@ import React from 'react';
 
 import { LinkButton } from 'src/components/LinkButton';
 
+import { usePermissions } from '../IAM/hooks/usePermissions';
 import { BackupDrawer } from './BackupDrawer';
 
 export const BackupsCTA = () => {
   const { data: accountSettings } = useAccountSettings();
   const { data: profile } = useProfile();
-
+  const { data: permissions } = usePermissions('linode', [
+    'enable_linode_backups',
+  ]);
   const { data: isBackupsBannerDismissed } = usePreferences(
     (preferences) => preferences?.backups_cta_dismissed
   );
@@ -77,6 +80,7 @@ export const BackupsCTA = () => {
         </IconButton>
       </Box>
       <BackupDrawer
+        hasPermission={permissions.enable_linode_backups}
         onClose={() => setIsBackupsDrawerOpen(false)}
         open={isBackupsDrawerOpen}
       />

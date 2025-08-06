@@ -13,6 +13,7 @@ import {
   mockGetAccountSettings,
   mockUpdateAccountSettings,
 } from 'support/intercepts/account';
+import { mockAppendFeatureFlags } from 'support/intercepts/feature-flags';
 import {
   interceptCancelLinodeBackups,
   interceptCreateLinodeSnapshot,
@@ -323,6 +324,11 @@ describe('"Enable Linode Backups" banner', () => {
    * - Confirms toast notification appears upon updating Linode backup settings.
    */
   it('can enable Linode backups via "Enable Linode Backups" notice', () => {
+    mockAppendFeatureFlags({
+      iam: {
+        enabled: true,
+      },
+    }).as('getFeatureFlags');
     const mockLinodesNoBackups = [
       // `us-central` has a normal pricing structure, whereas `us-east` and `us-west`
       // are mocked to have special pricing structures.
@@ -410,7 +416,7 @@ describe('"Enable Linode Backups" banner', () => {
       },
     });
 
-    cy.wait(['@getAccountSettings', '@getLinodes']);
+    cy.wait(['@getFeatureFlags', '@getAccountSettings', '@getLinodes']);
 
     // Click "Enable Linode Backups" link within backups notice.
     cy.findByText('Enable Linode Backups').should('be.visible').click();
