@@ -14,6 +14,7 @@ import { useController, useFormContext, useWatch } from 'react-hook-form';
 
 import { FormLabel } from 'src/components/FormLabel';
 import { SelectionCard } from 'src/components/SelectionCard/SelectionCard';
+import { usePermissions } from 'src/features/IAM/hooks/usePermissions';
 
 import { useGetLinodeCreateType } from '../Tabs/utils/useGetLinodeCreateType';
 import { getDefaultFirewallForInterfacePurpose } from './utilities';
@@ -50,6 +51,8 @@ export const InterfaceType = ({ index }: Props) => {
   const queryClient = useQueryClient();
 
   const { enqueueSnackbar } = useSnackbar();
+
+  const { data: permissions } = usePermissions('account', ['create_linode']);
 
   const { control, getFieldState, setValue } =
     useFormContext<LinodeCreateFormValues>();
@@ -135,7 +138,7 @@ export const InterfaceType = ({ index }: Props) => {
           {interfaceTypes.map((interfaceType) => (
             <SelectionCard
               checked={disabled ? false : field.value === interfaceType.purpose}
-              disabled={disabled}
+              disabled={disabled || !permissions?.create_linode}
               gridSize={{
                 md: 3,
                 sm: 12,
@@ -149,7 +152,7 @@ export const InterfaceType = ({ index }: Props) => {
                   checked={
                     disabled ? false : field.value === interfaceType.purpose
                   }
-                  disabled={disabled}
+                  disabled={disabled || !permissions?.create_linode}
                 />
               )}
               renderVariant={() => (
